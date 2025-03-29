@@ -30,9 +30,8 @@
         .section {
             border-style: solid;
             border-color:#FFC107;
-            border-radius: 100px;
+            border-radius: 40px;
             background-color: #8B0000;
-            border-radius: 10px;
             padding: 15px;
             width: 90%;
             max-width: 500px;
@@ -83,9 +82,11 @@
             Grade11: { Mathematics: ["Algebra.pdf", "Geometry.docx", "Trigonometry.pptx"] },
             Grade12: { Mathematics: ["Calculus.pdf", "Statistics.docx", "Probability.pptx"] }
         };
+        let uploadedFiles = JSON.parse(localStorage.getItem("uploadedFiles")) || {};
 
         function saveData() {
             localStorage.setItem('driveData', JSON.stringify(driveData));
+            localStorage.setItem('uploadedFiles', JSON.stringify(uploadedFiles));
         }
 
         function toggleAdminMode() {
@@ -93,7 +94,6 @@
             document.querySelectorAll('.admin-controls').forEach(btn => {
                 btn.style.display = adminMode ? 'inline-block' : 'none';
             });
-            document.querySelector('button').textContent = adminMode ? 'Disable Admin Mode' : 'Enable Admin Mode';
         }
 
         function renderDrive() {
@@ -115,7 +115,11 @@
                     
                     driveData[grade][subject].forEach(file => {
                         const fileItem = document.createElement("li");
-                        fileItem.innerHTML = `${file} <button class='admin-controls' onclick='renameFile("${grade}", "${subject}", "${file}")'>Rename</button> <button class='admin-controls' onclick='deleteFile("${grade}", "${subject}", "${file}")'>Delete</button> <button onclick='downloadFile("${file}")'>Download</button>`;
+                        fileItem.innerHTML = `
+                            ${file} 
+                            <button class='admin-controls' onclick='renameFile("${grade}", "${subject}", "${file}")'>Rename</button> 
+                            <button class='admin-controls' onclick='deleteFile("${grade}", "${subject}", "${file}")'>Delete</button> 
+                            <button onclick='downloadFile("${grade}", "${subject}", "${file}")'>Download</button>`;
                         fileList.appendChild(fileItem);
                     });
                     
@@ -132,6 +136,7 @@
         function deleteFile(grade, subject, file) {
             if (confirm("Are you sure you want to delete this file?")) {
                 driveData[grade][subject] = driveData[grade][subject].filter(f => f !== file);
+                delete uploadedFiles[`${grade}-${subject}-${file}`];
                 saveData();
                 renderDrive();
             }
@@ -143,6 +148,8 @@
                 const index = driveData[grade][subject].indexOf(file);
                 if (index !== -1) {
                     driveData[grade][subject][index] = newName;
+                    uploadedFiles[`${grade}-${subject}-${newName}`] = uploadedFiles[`${grade}-${subject}-${file}`];
+                    delete uploadedFiles[`${grade}-${subject}-${file}`];
                     saveData();
                     renderDrive();
                 }
@@ -162,9 +169,15 @@
         function addFile(event, grade, subject) {
             const file = event.target.files[0];
             if (file) {
-                driveData[grade][subject].push(file.name);
-                saveData();
-                renderDrive();
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const fileData = e.target.result; // Get Base64 file data
+                    uploadedFiles[`${grade}-${subject}-${file.name}`] = fileData;
+                    driveData[grade][subject].push(file.name);
+                    saveData();
+                    renderDrive();
+                };
+                reader.readAsDataURL(file); // Convert file to Base64
             }
         }
 
@@ -177,9 +190,17 @@
             }
         }
 
-        function downloadFile(fileName) {
-            const link = document.createElement('a');
-            link.href = '#';
+        function downloadFile(grade, subject, fileName) {
+            let fileData = uploadedFiles[`${grade}-${subject}-${fileName}`];
+
+            if (!fileData) {
+                alert("File not found.");
+                return;
+            }
+
+            // Create a Blob from Base64 data and trigger download
+            const link = document.createElement("a");
+            link.href = fileData;
             link.download = fileName;
             document.body.appendChild(link);
             link.click();
