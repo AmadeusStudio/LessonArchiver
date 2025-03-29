@@ -30,9 +30,8 @@
         .section {
             border-style: solid;
             border-color:#FFC107;
-            border-radius: 100px;
+            border-radius: 40px;
             background-color: #8B0000;
-            border-radius: 10px;
             padding: 15px;
             width: 90%;
             max-width: 500px;
@@ -63,6 +62,9 @@
         button:hover {
             background-color: #FFC107;
         }
+        input[type='file'] {
+            margin-top: 10px;
+        }
         @media (max-width: 600px) {
             .section {
                 width: 100%;
@@ -80,6 +82,10 @@
             Grade11: { Mathematics: ["Algebra.pdf", "Geometry.docx", "Trigonometry.pptx"] },
             Grade12: { Mathematics: ["Calculus.pdf", "Statistics.docx", "Probability.pptx"] }
         };
+
+        function saveData() {
+            localStorage.setItem('driveData', JSON.stringify(driveData));
+        }
 
         function renderDrive() {
             const container = document.getElementById("driveContainer");
@@ -100,11 +106,13 @@
                     
                     driveData[grade][subject].forEach(file => {
                         const fileItem = document.createElement("li");
-                        fileItem.innerHTML = `${file} <button onclick='downloadFile("${file}")'>Download</button>`;
+                        fileItem.innerHTML = `${file} 
+                            <button onclick='downloadFile("${grade}", "${subject}", "${file}")'>Download</button>`;
                         fileList.appendChild(fileItem);
                     });
                     
                     subjectDiv.appendChild(fileList);
+                    subjectDiv.innerHTML += `<input type='file' onchange='addFile(event, "${grade}", "${subject}")'>`;
                     section.appendChild(subjectDiv);
                 }
                 
@@ -112,9 +120,35 @@
             }
         }
 
-        function downloadFile(fileName) {
-            const link = document.createElement('a');
-            link.href = '#';
+        function addFile(event, grade, subject) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const fileData = e.target.result; // Convert file to Base64
+                    let storedFiles = JSON.parse(localStorage.getItem("uploadedFiles")) || {};
+                    storedFiles[`${grade}-${subject}-${file.name}`] = fileData;
+                    localStorage.setItem("uploadedFiles", JSON.stringify(storedFiles));
+
+                    driveData[grade][subject].push(file.name);
+                    saveData();
+                    renderDrive();
+                };
+                reader.readAsDataURL(file); // Convert file to Base64
+            }
+        }
+
+        function downloadFile(grade, subject, fileName) {
+            let storedFiles = JSON.parse(localStorage.getItem("uploadedFiles")) || {};
+            let fileData = storedFiles[`${grade}-${subject}-${fileName}`];
+
+            if (!fileData) {
+                alert("File not found.");
+                return;
+            }
+
+            const link = document.createElement("a");
+            link.href = fileData;
             link.download = fileName;
             document.body.appendChild(link);
             link.click();
