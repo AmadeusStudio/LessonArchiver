@@ -62,9 +62,6 @@
         button:hover {
             background-color: #FFC107;
         }
-        input[type='file'] {
-            margin-top: 10px;
-        }
         @media (max-width: 600px) {
             .section {
                 width: 100%;
@@ -82,10 +79,6 @@
             Grade11: { Mathematics: ["Algebra.pdf", "Geometry.docx", "Trigonometry.pptx"] },
             Grade12: { Mathematics: ["Calculus.pdf", "Statistics.docx", "Probability.pptx"] }
         };
-
-        function saveData() {
-            localStorage.setItem('driveData', JSON.stringify(driveData));
-        }
 
         function renderDrive() {
             const container = document.getElementById("driveContainer");
@@ -112,29 +105,10 @@
                     });
                     
                     subjectDiv.appendChild(fileList);
-                    subjectDiv.innerHTML += `<input type='file' onchange='addFile(event, "${grade}", "${subject}")'>`;
                     section.appendChild(subjectDiv);
                 }
                 
                 container.appendChild(section);
-            }
-        }
-
-        function addFile(event, grade, subject) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const fileData = e.target.result; // Convert file to Base64
-                    let storedFiles = JSON.parse(localStorage.getItem("uploadedFiles")) || {};
-                    storedFiles[`${grade}-${subject}-${file.name}`] = fileData;
-                    localStorage.setItem("uploadedFiles", JSON.stringify(storedFiles));
-
-                    driveData[grade][subject].push(file.name);
-                    saveData();
-                    renderDrive();
-                };
-                reader.readAsDataURL(file); // Convert file to Base64
             }
         }
 
