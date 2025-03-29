@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lesson Archiver - Admin</title>
+    <style>
+        body {
+            background: url(images/Home.jpg);
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #3F1D1D;
+            color: white;
+        }
+        .title {
+            border-style: solid;
+            border-color:#FFC107;
+            border-radius: 100px;
+            background-color:#8B0000;
+            text-align: center;
+            font-size: 40px;
+            margin-bottom: 20px;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+        .section {
+            border-style: solid;
+            border-color:#FFC107;
+            border-radius: 100px;
+            background-color: #8B0000;
+            border-radius: 10px;
+            padding: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .file-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .file-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background-color: #5A1E1E;
+            border-radius: 5px;
+            margin: 5px 0;
+        }
+        .admin-controls, button {
+            background-color: #FFD700;
+            color: black;
+            border: none;
+            padding: 5px 10px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #FFC107;
+        }
+        @media (max-width: 600px) {
+            .section {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1 class="title">ADMIN PAGE</h1>
+    <button onclick="window.location.href='student.html'">Go to Student Page</button>
+    <button onclick="toggleAdminMode()">Enable Admin Mode</button>
+    <div class="container" id="driveContainer">
+    </div>
+    
+    <script>
+        let adminMode = false;
+        let driveData = JSON.parse(localStorage.getItem('driveData')) || {
+            Grade11: { Mathematics: ["Algebra.pdf", "Geometry.docx", "Trigonometry.pptx"] },
+            Grade12: { Mathematics: ["Calculus.pdf", "Statistics.docx", "Probability.pptx"] }
+        };
+
+        function saveData() {
+            localStorage.setItem('driveData', JSON.stringify(driveData));
+        }
+
+        function toggleAdminMode() {
+            adminMode = !adminMode;
+            document.querySelectorAll('.admin-controls').forEach(btn => {
+                btn.style.display = adminMode ? 'inline-block' : 'none';
+            });
+            document.querySelector('button').textContent = adminMode ? 'Disable Admin Mode' : 'Enable Admin Mode';
+        }
+
+        function renderDrive() {
+            const container = document.getElementById("driveContainer");
+            container.innerHTML = "";
+            
+            for (let grade in driveData) {
+                const section = document.createElement("div");
+                section.className = "section";
+                section.innerHTML = `<h2>${grade}</h2>`;
+                
+                for (let subject in driveData[grade]) {
+                    const subjectDiv = document.createElement("div");
+                    subjectDiv.className = "subject";
+                    subjectDiv.innerHTML = `<h3>${subject} <button class='admin-controls' onclick='renameSubject("${grade}", "${subject}")'>Rename</button></h3>`;
+                    
+                    const fileList = document.createElement("ul");
+                    fileList.className = "file-list";
+                    
+                    driveData[grade][subject].forEach(file => {
+                        const fileItem = document.createElement("li");
+                        fileItem.innerHTML = `${file} <button class='admin-controls' onclick='renameFile("${grade}", "${subject}", "${file}")'>Rename</button> <button class='admin-controls' onclick='deleteFile("${grade}", "${subject}", "${file}")'>Delete</button> <button onclick='downloadFile("${file}")'>Download</button>`;
+                        fileList.appendChild(fileItem);
+                    });
+                    
+                    subjectDiv.appendChild(fileList);
+                    subjectDiv.innerHTML += `<input type='file' class='admin-controls' onchange='addFile(event, "${grade}", "${subject}")'>`;
+                    section.appendChild(subjectDiv);
+                }
+                
+                section.innerHTML += `<button class='admin-controls' onclick='addSubject("${grade}")'>Add Subject</button>`;
+                container.appendChild(section);
+            }
+        }
+
+        function deleteFile(grade, subject, file) {
+            if (confirm("Are you sure you want to delete this file?")) {
+                driveData[grade][subject] = driveData[grade][subject].filter(f => f !== file);
+                saveData();
+                renderDrive();
+            }
+        }
+
+        function renameFile(grade, subject, file) {
+            const newName = prompt("Enter new file name:", file);
+            if (newName) {
+                const index = driveData[grade][subject].indexOf(file);
+                if (index !== -1) {
+                    driveData[grade][subject][index] = newName;
+                    saveData();
+                    renderDrive();
+                }
+            }
+        }
+
+        function renameSubject(grade, subject) {
+            const newName = prompt("Enter new subject name:", subject);
+            if (newName) {
+                driveData[grade][newName] = driveData[grade][subject];
+                delete driveData[grade][subject];
+                saveData();
+                renderDrive();
+            }
+        }
+
+        function addFile(event, grade, subject) {
+            const file = event.target.files[0];
+            if (file) {
+                driveData[grade][subject].push(file.name);
+                saveData();
+                renderDrive();
+            }
+        }
+
+        function addSubject(grade) {
+            const newSubject = prompt("Enter new subject name:");
+            if (newSubject) {
+                driveData[grade][newSubject] = [];
+                saveData();
+                renderDrive();
+            }
+        }
+
+        function downloadFile(fileName) {
+            const link = document.createElement('a');
+            link.href = '#';
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        renderDrive();
+    </script>
+</body>
+</html>
